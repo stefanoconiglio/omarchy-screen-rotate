@@ -4,7 +4,7 @@ import Quickshell.Io
 import qs.Commons
 import qs.Ui
 
-// Whether the laptop's screen, touchpad and mice are turned a quarter for
+// Whether the laptop's screen and touchpad are turned a quarter for
 // reading while walking, from omarchy-screen-rotate (bin/omarchy-screen-rotate beside it).
 // One icon at the size of Omarchy's indicators beside it, always shown: lit
 // when turned, dimmed when upright, in the theme's urgent colour when only
@@ -29,9 +29,9 @@ BarWidget {
   readonly property string tooltip: {
     if (switching) return state === "off" ? "Turning the screen…" : "Turning the screen back…"
     if (state === "on")
-      return "Screen, touchpad and mouse turned a quarter\nClick to turn them back"
+      return "Screen and touchpad turned a quarter\nClick to turn them back"
     if (state === "off")
-      return "Screen upright\nClick to turn the screen, touchpad and mouse a quarter, for reading while walking"
+      return "Screen upright\nClick to turn the screen and touchpad a quarter, for reading while walking"
     if (state === "mixed")
       return "Only part is turned\nClick to put everything back"
     return "Screen rotate: no answer from " + rotate + " sync"

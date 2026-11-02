@@ -1,27 +1,27 @@
 #!/bin/bash
 #
-# omarchy-screen-rotate [on|off|toggle|status|sync]: turn the laptop's screen, its
-# touchpad and the mice 90° for reading while walking, and back. With no
-# argument it toggles, so running it again undoes it.
+# omarchy-screen-rotate [on|off|toggle|status|sync]: turn the laptop's screen and
+# its touchpad 90° for reading while walking, and back. With no argument it
+# toggles, so running it again undoes it.
 #
 # On:
 #   - the laptop's own panel (eDP, LVDS, DSI) gets Hyprland's transform
 #     $TRANSFORM; monitors that mirror it follow;
-#   - the mice (and any pointer libinput can rotate) get Hyprland's
-#     input.rotation $ANGLE, libinput's own setting;
-#   - the touchpad, which libinput cannot rotate, is turned by
-#     omarchy-screen-rotate-touchpad in the transient user unit $UNIT;
+#   - the touchpad, fixed to the laptop and so turned with it, is turned
+#     back by omarchy-screen-rotate-touchpad (libinput cannot rotate a
+#     touchpad) in the transient user unit $UNIT;
 #   - the bar moves to the left edge (`omarchy bar position left`), the long
 #     one once the screen is turned; the edge it was on is kept in
 #     $BAR_SAVED and given back when the screen is upright again.
-# Off puts them all back. Everything is set at run time with `hyprctl eval`,
-# nothing is written to the Hyprland config: a reload of it (a theme change,
-# `hyprctl reload`) puts the screen and the mice back by itself, and `sync`
+# Mice are left alone: a mouse stays on the table in the user's directions,
+# as the turned picture does (until 2 Nov 2026 they were turned too, by
+# mistake). Off puts it all back. The screen is set at run time with
+# `hyprctl eval`, nothing is written to the Hyprland config: a reload of it (a
+# theme change, `hyprctl reload`) puts the screen back by itself, and `sync`
 # (which the bar widget runs every 3 seconds) then stops the touchpad too.
 #
-# status prints one line, "on", "off" or "mixed" (the three disagree), then
-# one line each: "screen <transform>", "mouse <angle>", "touchpad
-# active|inactive|failed". sync puts a mixed state back to off and prints the
+# status prints one line, "on", "off" or "mixed" (the two disagree), then
+# one line each: "screen <transform>", "touchpad active|inactive|failed". sync puts a mixed state back to off and prints the
 # state ("busy" while another change runs). Exit 2: no laptop panel found;
 # exit 4: the touchpad could not be turned (nothing was).
 #
@@ -46,10 +46,6 @@ panel() {
     jq -r 'first(.[] | select(.name | test("^(eDP|LVDS|DSI)"))) | "\(.name) \(.scale) \(.x)x\(.y) \(.transform)"' 2>/dev/null
 }
 
-mouse_angle() {
-  hyprctl getoption input:rotation -j 2>/dev/null | jq -r '.int // 0' 2>/dev/null
-}
-
 touchpad_state() {
   systemctl --user is-active "$UNIT" 2>/dev/null || true
 }
@@ -59,10 +55,6 @@ set_screen() {
   read -r name scale pos transform <<<"$(panel)"
   [[ -n $name ]] || { echo "omarchy-screen-rotate: no laptop panel found" >&2; return 2; }
   hyprctl eval "hl.monitor({ output = \"$name\", mode = \"preferred\", position = \"$pos\", scale = $scale, transform = $1 })" >/dev/null
-}
-
-set_mouse() {
-  hyprctl eval "hl.config({ input = { rotation = $1 } })" >/dev/null
 }
 
 # The bar's edge before turning is saved once (a second `on` keeps the first
@@ -105,11 +97,10 @@ touchpad_off() {
 state() {
   local name scale pos transform
   read -r name scale pos transform <<<"$(panel)"
-  local s=off m=off t=off
+  local s=off t=off
   [[ $transform != 0 && -n $transform ]] && s=on
-  [[ $(mouse_angle) != 0 ]] && m=on
   [[ $(touchpad_state) == active ]] && t=on
-  if [[ $s == "$m" && $m == "$t" ]]; then echo "$s"; else echo mixed; fi
+  if [[ $s == "$t" ]]; then echo "$s"; else echo mixed; fi
 }
 
 # The touchpad first: a screen turned with a touchpad that is not would leave
@@ -121,14 +112,12 @@ turn_on() {
     echo "omarchy-screen-rotate: the touchpad could not be turned, so nothing was: journalctl --user -u $UNIT" >&2
     return 4
   fi
-  set_mouse "$ANGLE"
   set_screen "$TRANSFORM"
   bar_aside
 }
 
 turn_off() {
   touchpad_off
-  set_mouse 0
   set_screen 0
   bar_back
 }
@@ -162,8 +151,7 @@ case ${1:-toggle} in
     [[ -n $transform ]] || { echo "omarchy-screen-rotate: no laptop panel found" >&2; exit 2; }
     state
     echo "screen $transform"
-    echo "mouse $(mouse_angle)"
     echo "touchpad $(touchpad_state)" ;;
-  -h|--help) sed -n '3,31p' "$SELF" | sed 's/^# \{0,1\}//' ;;
+  -h|--help) sed -n '3,32p' "$SELF" | sed 's/^# \{0,1\}//' ;;
   *) echo "usage: omarchy-screen-rotate [on|off|toggle|status|sync]" >&2; exit 64 ;;
 esac

@@ -2,10 +2,10 @@
   "schemaVersion": 1,
   "id": "io.github.stefanoconiglio.screen-rotate",
   "name": "Screen rotate",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "author": "Stefano Coniglio",
   "license": "MIT",
-  "description": "Turns the laptop's screen, its touchpad and the mice a quarter, for reading while walking with the laptop held sideways; a second click puts them back. Lit while turned.",
+  "description": "Turns the laptop's screen and its touchpad a quarter, for reading while walking with the laptop held sideways; a second click puts them back. Lit while turned.",
   "kinds": [
     "bar-widget"
   ],
@@ -14,7 +14,7 @@
   },
   "barWidget": {
     "displayName": "Screen rotate",
-    "description": "Turn the screen, touchpad and mouse a quarter; click again to put them back",
+    "description": "Turn the screen and touchpad a quarter; click again to put them back",
     "category": "Status",
     "allowMultiple": false,
     "defaultSection": "center"

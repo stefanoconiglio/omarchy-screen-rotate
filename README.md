@@ -1,8 +1,8 @@
 # Screen rotate
 
-An Omarchy bar button that turns the laptop's screen, its touchpad and the
-mice a quarter, for reading while walking with the laptop held sideways; a
-second click puts them back. It sits beside Lid awake in the middle of the
+An Omarchy bar button that turns the laptop's screen and its touchpad a
+quarter, for reading while walking with the laptop held sideways; a second
+click puts them back. It sits beside Lid awake in the middle of the
 bar: lit while turned, dimmed while upright, in the urgent colour when only
 part is turned (a click then puts everything back).
 
@@ -10,13 +10,15 @@ part is turned (a click then puts everything back).
 
 - The screen: the laptop's own panel (eDP, LVDS, DSI) gets Hyprland's
   `transform 3`; monitors that mirror it follow.
-- The mice: libinput's own rotation, Hyprland's `input.rotation 270`.
-- The touchpad: libinput cannot rotate touchpads (only mice and trackballs),
-  so `omarchy-screen-rotate-touchpad` takes the real touchpad for itself and hands
+- The touchpad: it is fixed to the laptop, so it turns with it, against the
+  turned picture, and must be turned back. libinput cannot rotate touchpads
+  (only mice and trackballs), so `omarchy-screen-rotate-touchpad` takes the real touchpad for itself and hands
   every touch on, turned, through a virtual touchpad with the same buttons
   and properties: clicks, scrolling, gestures and palm rejection keep
   working. It runs in the user unit `omarchy-screen-rotate-touchpad.service`; when
   it stops, however it stops, the real touchpad is back.
+- Mice are left alone: a mouse stays on the table, in your directions, as the
+  turned picture does.
 - The bar: moved to the left edge (`omarchy bar position left`), the long one
   once the screen is turned, where Omarchy's widgets take their compact
   forms; the edge it was on comes back with the screen upright.
@@ -24,7 +26,7 @@ part is turned (a click then puts everything back).
 The touchpad is turned first: if it cannot be, nothing is turned (exit 4, and
 a notification from the button). Everything is set at run time, nothing in
 the Hyprland config, so a Hyprland reload puts the screen upright; within 3
-seconds the button notices and puts the touchpad and mice back too.
+seconds the button notices and puts the touchpad back too.
 
 ## Install
 
@@ -74,11 +76,11 @@ loads `uinput` at boot. `sudo udev/install.sh --remove` takes both away.
 ```
 omarchy-screen-rotate            # toggle
 omarchy-screen-rotate on|off
-omarchy-screen-rotate status     # on, off or mixed; then screen, mouse, touchpad
+omarchy-screen-rotate status     # on, off or mixed; then screen, touchpad
 omarchy-screen-rotate --help
 ```
 
-The direction: `transform 3` with the input turned 270° clockwise suits a
+The direction: `transform 3` with the touchpad turned 270° clockwise suits a
 laptop turned a quarter anticlockwise. For the other way:
 `OMARCHY_SCREEN_ROTATE_TRANSFORM=1 OMARCHY_SCREEN_ROTATE_ANGLE=90 omarchy-screen-rotate on`.
 

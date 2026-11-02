@@ -2,8 +2,9 @@
 # omarchy-screen-rotate's on, off, toggle, sync and status against stand-ins for
 # hyprctl, systemctl and systemd-run: nothing on the real screen or touchpad
 # moves. Checks that a touchpad that cannot be turned leaves everything
-# upright (exit 4), that sync puts a half-turned state back, and that the bar
-# goes to the left edge while turned and back to its own edge after.
+# upright (exit 4), that sync puts a half-turned state back, that the bar
+# goes to the left edge while turned and back to its own edge after, and that
+# the mice are never turned (Hyprland's input.rotation stays 0).
 # Run: tests/toggle_stubs.sh (exit 0 and "ok").
 set -u
 HERE=$(cd "$(dirname "$0")" && pwd)
@@ -33,6 +34,7 @@ esac
 EOF
 cat >"$T/bin/systemd-run" <<EOF
 #!/bin/bash
+echo "\$*" >$T/run-args
 [[ -e $T/fail ]] && echo failed >$T/unit || echo active >$T/unit
 EOF
 cat >"$T/bin/omarchy" <<EOF
@@ -52,7 +54,9 @@ st() { "$ROT" status | head -1; }
 [[ $(st) == off ]] || fail "starts off"
 "$ROT" toggle || fail "toggle on exits $?"
 [[ $(st) == on ]] || fail "toggle turns on"
-[[ $(cat "$T/transform") == 3 && $(cat "$T/rotation") == 270 ]] || fail "transform 3, rotation 270 by default"
+[[ $(cat "$T/transform") == 3 ]] || fail "transform 3 by default"
+grep -q -- '--angle 270$' "$T/run-args" || fail "the touchpad turned 270 by default"
+[[ $(cat "$T/rotation") == 0 ]] || fail "the mice are not turned"
 "$ROT" status | grep -qx "touchpad active" || fail "status lists the touchpad"
 "$ROT" toggle || fail "toggle off exits $?"
 [[ $(st) == off ]] || fail "toggle turns off"
@@ -77,18 +81,19 @@ echo 0 >"$T/transform"; echo 0 >"$T/rotation"; echo inactive >"$T/unit"
 echo 0 >"$T/transform"
 [[ $(st) == mixed ]] || fail "half turned is mixed"
 [[ $("$ROT" sync) == off ]] || fail "sync puts it back"
-[[ $(cat "$T/rotation") == 0 && $(cat "$T/unit") == inactive ]] || fail "sync stops touchpad and mouse"
+[[ $(cat "$T/unit") == inactive ]] || fail "sync stops the touchpad"
 
 # The other way round, too.
 OMARCHY_SCREEN_ROTATE_TRANSFORM=1 OMARCHY_SCREEN_ROTATE_ANGLE=90 "$ROT" on
-[[ $(cat "$T/transform") == 1 && $(cat "$T/rotation") == 90 ]] || fail "transform 1 with 90"
+[[ $(cat "$T/transform") == 1 ]] && grep -q -- '--angle 90$' "$T/run-args" || fail "transform 1 with 90"
+[[ $(cat "$T/rotation") == 0 ]] || fail "the mice are not turned the other way either"
 "$ROT" off
 
 # The touchpad cannot be turned: nothing is, exit 4.
 touch "$T/fail"
 "$ROT" on 2>/dev/null; rc=$?
 [[ $rc == 4 ]] || fail "touchpad failure exits 4, not $rc"
-[[ $(cat "$T/transform") == 0 && $(cat "$T/rotation") == 0 ]] || fail "touchpad failure leaves the screen and mouse upright"
+[[ $(cat "$T/transform") == 0 ]] || fail "touchpad failure leaves the screen upright"
 
 # Another change running: sync answers busy and changes nothing.
 rm "$T/fail"
