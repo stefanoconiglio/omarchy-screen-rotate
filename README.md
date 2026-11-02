@@ -29,7 +29,7 @@ seconds the button notices and puts the touchpad and mice back too.
 ## Install
 
 ```sh
-omarchy plugin add <this repository's URL> --enable
+omarchy plugin add https://github.com/stefanoconiglio/omarchy-rotate --enable
 sudo ~/.config/omarchy/plugins/io.github.stefanoconiglio.rotate/udev/install.sh   # once: access to the touchpad and uinput
 omarchy bar put io.github.stefanoconiglio.rotate --section center
 ```
@@ -41,7 +41,7 @@ terminal command too:
 Or from a clone of your own, linked in:
 
 ```sh
-git clone <this repository> ~/repos/omarchy-rotate
+git clone https://github.com/stefanoconiglio/omarchy-rotate ~/repos/omarchy-rotate
 ln -s ~/repos/omarchy-rotate ~/.config/omarchy/plugins/io.github.stefanoconiglio.rotate
 sudo ~/repos/omarchy-rotate/udev/install.sh
 ```
