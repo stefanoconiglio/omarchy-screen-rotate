@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
-  "id": "io.github.stefanoconiglio.rotate",
-  "name": "Rotate",
+  "id": "io.github.stefanoconiglio.screen-rotate",
+  "name": "Screen rotate",
   "version": "1.0.0",
   "author": "Stefano Coniglio",
   "license": "MIT",
@@ -13,7 +13,7 @@
     "barWidget": "BarWidget.qml"
   },
   "barWidget": {
-    "displayName": "Rotate",
+    "displayName": "Screen rotate",
     "description": "Turn the screen, touchpad and mouse a quarter; click again to put them back",
     "category": "Status",
     "allowMultiple": false,

@@ -6,17 +6,17 @@
 # reboot, for the access to go).
 set -euo pipefail
 HERE=$(cd "$(dirname "$0")" && pwd)
-RULE=/etc/udev/rules.d/70-omarchy-rotate.rules
-MOD=/etc/modules-load.d/omarchy-rotate.conf
+RULE=/etc/udev/rules.d/70-omarchy-screen-rotate.rules
+MOD=/etc/modules-load.d/omarchy-screen-rotate.conf
 
 if [[ ${1:-} == --remove ]]; then
   rm -f "$RULE" "$MOD"
 else
-  install -m 644 "$HERE/70-omarchy-rotate.rules" "$RULE"
-  install -m 644 "$HERE/omarchy-rotate.conf" "$MOD"
+  install -m 644 "$HERE/70-omarchy-screen-rotate.rules" "$RULE"
+  install -m 644 "$HERE/omarchy-screen-rotate.conf" "$MOD"
   modprobe uinput
 fi
 udevadm control --reload
 udevadm trigger --action=change --subsystem-match=input --subsystem-match=misc
 udevadm settle
-echo "omarchy-rotate: udev rule $([[ ${1:-} == --remove ]] && echo removed || echo installed)"
+echo "omarchy-screen-rotate: udev rule $([[ ${1:-} == --remove ]] && echo removed || echo installed)"

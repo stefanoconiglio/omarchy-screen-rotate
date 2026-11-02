@@ -1,7 +1,7 @@
-# omarchy-rotate: lets the user at the seat (logind's uaccess, no group) read
-# touchpads and create virtual input devices, so omarchy-rotate-touchpad can
+# omarchy-screen-rotate: lets the user at the seat (logind's uaccess, no group) read
+# touchpads and create virtual input devices, so omarchy-screen-rotate-touchpad can
 # take the touchpad and hand it on turned. Installed as
-# /etc/udev/rules.d/70-omarchy-rotate.rules (before 73-seat-late.rules, which
+# /etc/udev/rules.d/70-omarchy-screen-rotate.rules (before 73-seat-late.rules, which
 # turns the uaccess tag into the ACL). Remove that file to undo.
 SUBSYSTEM=="input", KERNEL=="event*", ENV{ID_INPUT_TOUCHPAD}=="1", TAG+="uaccess"
 SUBSYSTEM=="misc", KERNEL=="uinput", TAG+="uaccess", OPTIONS+="static_node=uinput"

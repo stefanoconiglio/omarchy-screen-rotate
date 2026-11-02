@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-# omarchy-rotate [on|off|toggle|status|sync]: turn the laptop's screen, its
+# omarchy-screen-rotate [on|off|toggle|status|sync]: turn the laptop's screen, its
 # touchpad and the mice 90° for reading while walking, and back. With no
 # argument it toggles, so running it again undoes it.
 #
@@ -10,7 +10,7 @@
 #   - the mice (and any pointer libinput can rotate) get Hyprland's
 #     input.rotation $ANGLE, libinput's own setting;
 #   - the touchpad, which libinput cannot rotate, is turned by
-#     omarchy-rotate-touchpad in the transient user unit $UNIT;
+#     omarchy-screen-rotate-touchpad in the transient user unit $UNIT;
 #   - the bar moves to the left edge (`omarchy bar position left`), the long
 #     one once the screen is turned; the edge it was on is kept in
 #     $BAR_SAVED and given back when the screen is upright again.
@@ -30,13 +30,13 @@
 # clockwise (Stefano's way, 2 Nov 2026). For the other way round: transform 1
 # with angle 90.
 
-TRANSFORM=${OMARCHY_ROTATE_TRANSFORM:-3}
-ANGLE=${OMARCHY_ROTATE_ANGLE:-270}
-UNIT=omarchy-rotate-touchpad
+TRANSFORM=${OMARCHY_SCREEN_ROTATE_TRANSFORM:-3}
+ANGLE=${OMARCHY_SCREEN_ROTATE_ANGLE:-270}
+UNIT=omarchy-screen-rotate-touchpad
 SELF=$(readlink -f "$0")
-HELPER=$(dirname "$SELF")/omarchy-rotate-touchpad
-BAR_SIDE=${OMARCHY_ROTATE_BAR:-left}
-STATE_DIR=${XDG_STATE_HOME:-$HOME/.local/state}/omarchy-rotate
+HELPER=$(dirname "$SELF")/omarchy-screen-rotate-touchpad
+BAR_SIDE=${OMARCHY_SCREEN_ROTATE_BAR:-left}
+STATE_DIR=${XDG_STATE_HOME:-$HOME/.local/state}/omarchy-screen-rotate
 BAR_SAVED=$STATE_DIR/bar-position
 SHELL_JSON=${XDG_CONFIG_HOME:-$HOME/.config}/omarchy/shell.json
 
@@ -57,7 +57,7 @@ touchpad_state() {
 set_screen() {
   local name scale pos transform
   read -r name scale pos transform <<<"$(panel)"
-  [[ -n $name ]] || { echo "omarchy-rotate: no laptop panel found" >&2; return 2; }
+  [[ -n $name ]] || { echo "omarchy-screen-rotate: no laptop panel found" >&2; return 2; }
   hyprctl eval "hl.monitor({ output = \"$name\", mode = \"preferred\", position = \"$pos\", scale = $scale, transform = $1 })" >/dev/null
 }
 
@@ -89,7 +89,7 @@ touchpad_on() {
   [[ $(touchpad_state) == active ]] && return 0
   systemctl --user reset-failed "$UNIT" 2>/dev/null
   systemd-run --user --quiet --unit="$UNIT" --collect --setenv=PATH="$PATH" \
-    -p MemoryMax=200M -p Description="omarchy-rotate: the touchpad turned ${ANGLE}°" \
+    -p MemoryMax=200M -p Description="omarchy-screen-rotate: the touchpad turned ${ANGLE}°" \
     "$HELPER" --angle "$ANGLE" || return
   sleep 1.5
   [[ $(touchpad_state) == active ]]
@@ -115,10 +115,10 @@ state() {
 # The touchpad first: a screen turned with a touchpad that is not would leave
 # the laptop hard to control, so if the touchpad fails nothing is turned.
 turn_on() {
-  [[ -n $(panel) ]] || { echo "omarchy-rotate: no laptop panel found" >&2; return 2; }
+  [[ -n $(panel) ]] || { echo "omarchy-screen-rotate: no laptop panel found" >&2; return 2; }
   if ! touchpad_on; then
     touchpad_off
-    echo "omarchy-rotate: the touchpad could not be turned, so nothing was: journalctl --user -u $UNIT" >&2
+    echo "omarchy-screen-rotate: the touchpad could not be turned, so nothing was: journalctl --user -u $UNIT" >&2
     return 4
   fi
   set_mouse "$ANGLE"
@@ -136,7 +136,7 @@ turn_off() {
 # One change at a time: a toggle takes the lock and waits for another to end;
 # sync, run every few seconds by the bar, skips a round while one is running
 # rather than read a half-made state.
-exec 9>"${XDG_RUNTIME_DIR:-/tmp}/omarchy-rotate.lock"
+exec 9>"${XDG_RUNTIME_DIR:-/tmp}/omarchy-screen-rotate.lock"
 if [[ ${1:-toggle} == sync ]]; then
   flock -n 9 || { echo busy; exit 0; }
 elif [[ ${1:-toggle} != status ]]; then
@@ -159,11 +159,11 @@ case ${1:-toggle} in
     echo "$st" ;;
   status)
     read -r _ _ _ transform <<<"$(panel)"
-    [[ -n $transform ]] || { echo "omarchy-rotate: no laptop panel found" >&2; exit 2; }
+    [[ -n $transform ]] || { echo "omarchy-screen-rotate: no laptop panel found" >&2; exit 2; }
     state
     echo "screen $transform"
     echo "mouse $(mouse_angle)"
     echo "touchpad $(touchpad_state)" ;;
   -h|--help) sed -n '3,31p' "$SELF" | sed 's/^# \{0,1\}//' ;;
-  *) echo "usage: omarchy-rotate [on|off|toggle|status|sync]" >&2; exit 64 ;;
+  *) echo "usage: omarchy-screen-rotate [on|off|toggle|status|sync]" >&2; exit 64 ;;
 esac

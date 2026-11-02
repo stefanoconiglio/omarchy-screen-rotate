@@ -15,7 +15,7 @@ import pathlib
 from evdev import AbsInfo, ecodes as e
 
 HERE = pathlib.Path(__file__).resolve().parent
-path = str(HERE.parent / "bin" / "omarchy-rotate-touchpad")
+path = str(HERE.parent / "bin" / "omarchy-screen-rotate-touchpad")
 loader = importlib.machinery.SourceFileLoader("helper", path)
 spec = importlib.util.spec_from_loader("helper", loader)
 helper = importlib.util.module_from_spec(spec)

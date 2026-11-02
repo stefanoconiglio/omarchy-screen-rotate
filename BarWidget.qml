@@ -5,10 +5,10 @@ import qs.Commons
 import qs.Ui
 
 // Whether the laptop's screen, touchpad and mice are turned a quarter for
-// reading while walking, from omarchy-rotate (bin/omarchy-rotate beside it).
+// reading while walking, from omarchy-screen-rotate (bin/omarchy-screen-rotate beside it).
 // One icon at the size of Omarchy's indicators beside it, always shown: lit
 // when turned, dimmed when upright, in the theme's urgent colour when only
-// part is turned. `omarchy-rotate sync` is run every 3 seconds: it reads the
+// part is turned. `omarchy-screen-rotate sync` is run every 3 seconds: it reads the
 // state and, when something is half turned (a Hyprland reload put the screen
 // back), puts the rest back too.
 //
@@ -16,11 +16,11 @@ import qs.Ui
 // otherwise: the click does what the tooltip said.
 BarWidget {
   id: root
-  moduleName: "io.github.stefanoconiglio.rotate"
+  moduleName: "io.github.stefanoconiglio.screen-rotate"
 
   // The plugin's own copy, so a plugin added with `omarchy plugin add` works
   // without the link in ~/.local/bin (which is only for the terminal).
-  readonly property string rotate: decodeURIComponent(String(Qt.resolvedUrl("bin/omarchy-rotate")).replace(/^file:\/\//, ""))
+  readonly property string rotate: decodeURIComponent(String(Qt.resolvedUrl("bin/omarchy-screen-rotate")).replace(/^file:\/\//, ""))
 
   // "on", "off", "mixed", or "" until the first read answers.
   property string state: ""
@@ -34,7 +34,7 @@ BarWidget {
       return "Screen upright\nClick to turn the screen, touchpad and mouse a quarter, for reading while walking"
     if (state === "mixed")
       return "Only part is turned\nClick to put everything back"
-    return "Rotate: no answer from " + rotate + " sync"
+    return "Screen rotate: no answer from " + rotate + " sync"
   }
 
   function update(text) {
@@ -56,7 +56,7 @@ BarWidget {
   implicitHeight: iconButton.implicitHeight
 
   IpcHandler {
-    target: "io.github.stefanoconiglio.rotate"
+    target: "io.github.stefanoconiglio.screen-rotate"
 
     function refresh(): void {
       root.broadcast("refresh")
@@ -78,7 +78,7 @@ BarWidget {
     stdout: StdioCollector { waitForEnd: true; onStreamFinished: root.update(text) }
   }
 
-  // omarchy-rotate's messages go to its terminal, which a click has none of, so
+  // omarchy-screen-rotate's messages go to its terminal, which a click has none of, so
   // a failure is said in a notification; the bars of every screen read again.
   // Exit 4: the touchpad could not be turned, so nothing was.
   Process {
@@ -87,10 +87,10 @@ BarWidget {
     onExited: function(exitCode) {
       if (exitCode === 4)
         Quickshell.execDetached(["notify-send", "-u", "critical", "Screen not turned",
-          "The touchpad could not be turned, so nothing was. See: journalctl --user -u omarchy-rotate-touchpad"])
+          "The touchpad could not be turned, so nothing was. See: journalctl --user -u omarchy-screen-rotate-touchpad"])
       else if (exitCode !== 0)
-        Quickshell.execDetached(["notify-send", "-u", "critical", "omarchy-rotate failed",
-          "Run omarchy-rotate status in a terminal"])
+        Quickshell.execDetached(["notify-send", "-u", "critical", "omarchy-screen-rotate failed",
+          "Run omarchy-screen-rotate status in a terminal"])
       root.broadcast("refresh")
     }
   }

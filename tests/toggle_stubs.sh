@@ -1,5 +1,5 @@
 #!/bin/bash
-# omarchy-rotate's on, off, toggle, sync and status against stand-ins for
+# omarchy-screen-rotate's on, off, toggle, sync and status against stand-ins for
 # hyprctl, systemctl and systemd-run: nothing on the real screen or touchpad
 # moves. Checks that a touchpad that cannot be turned leaves everything
 # upright (exit 4), that sync puts a half-turned state back, and that the bar
@@ -7,7 +7,7 @@
 # Run: tests/toggle_stubs.sh (exit 0 and "ok").
 set -u
 HERE=$(cd "$(dirname "$0")" && pwd)
-ROT=$HERE/../bin/omarchy-rotate
+ROT=$HERE/../bin/omarchy-screen-rotate
 T=$(mktemp -d)
 trap 'rm -rf "$T"' EXIT
 mkdir "$T/bin"
@@ -80,7 +80,7 @@ echo 0 >"$T/transform"
 [[ $(cat "$T/rotation") == 0 && $(cat "$T/unit") == inactive ]] || fail "sync stops touchpad and mouse"
 
 # The other way round, too.
-OMARCHY_ROTATE_TRANSFORM=1 OMARCHY_ROTATE_ANGLE=90 "$ROT" on
+OMARCHY_SCREEN_ROTATE_TRANSFORM=1 OMARCHY_SCREEN_ROTATE_ANGLE=90 "$ROT" on
 [[ $(cat "$T/transform") == 1 && $(cat "$T/rotation") == 90 ]] || fail "transform 1 with 90"
 "$ROT" off
 
@@ -92,7 +92,7 @@ touch "$T/fail"
 
 # Another change running: sync answers busy and changes nothing.
 rm "$T/fail"
-exec 9>"$T/omarchy-rotate.lock"; flock 9
+exec 9>"$T/omarchy-screen-rotate.lock"; flock 9
 [[ $("$ROT" sync) == busy ]] || fail "sync while locked is busy"
 flock -u 9
 

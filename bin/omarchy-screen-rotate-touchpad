@@ -3,7 +3,7 @@
 # requires-python = ">=3.10"
 # dependencies = ["evdev>=1.7"]
 # ///
-"""omarchy-rotate-touchpad [--angle 90|180|270] [--device /dev/input/eventN]
+"""omarchy-screen-rotate-touchpad [--angle 90|180|270] [--device /dev/input/eventN]
 
 Turns the laptop's touchpad by the angle (degrees clockwise, as libinput's
 rotation for mice), for as long as it runs. libinput rotates mice but not
@@ -14,12 +14,12 @@ turned. The virtual one has the real one's buttons, properties, vendor and
 product, so libinput treats it as the same touchpad: clicks, scrolling,
 gestures and palm rejection keep working.
 
-It runs inside the transient user unit omarchy-rotate-touchpad.service, started
-and stopped by `omarchy-rotate`. When it exits, however it exits, the kernel
+It runs inside the transient user unit omarchy-screen-rotate-touchpad.service, started
+and stopped by `omarchy-screen-rotate`. When it exits, however it exits, the kernel
 ends the grab and drops the virtual device: the real touchpad is back.
 
 Needs read access to the touchpad's event node and write access to
-/dev/uinput: the udev rule in udev/70-omarchy-rotate.rules gives both to the
+/dev/uinput: the udev rule in udev/70-omarchy-screen-rotate.rules gives both to the
 user at the seat. Exit 2: no touchpad found or not readable; exit 3: /dev/uinput
 not writable.
 """
@@ -31,7 +31,7 @@ import sys
 import evdev
 from evdev import ecodes as e
 
-VIRTUAL_NAME = "omarchy-rotate touchpad"
+VIRTUAL_NAME = "omarchy-screen-rotate touchpad"
 
 # The two axis pairs a touchpad reports positions on.
 PAIRS = ((e.ABS_X, e.ABS_Y), (e.ABS_MT_POSITION_X, e.ABS_MT_POSITION_Y))
@@ -114,7 +114,7 @@ def main():
 
     pad = find_touchpad(args.device)
     if pad is None:
-        print("omarchy-rotate-touchpad: no readable touchpad (is the udev rule installed?)", file=sys.stderr)
+        print("omarchy-screen-rotate-touchpad: no readable touchpad (is the udev rule installed?)", file=sys.stderr)
         return 2
 
     caps = pad.capabilities(absinfo=True)
@@ -127,7 +127,7 @@ def main():
                           version=pad.info.version, bustype=pad.info.bustype,
                           input_props=pad.input_props())
     except (OSError, evdev.UInputError) as err:
-        print(f"omarchy-rotate-touchpad: cannot create the virtual touchpad: {err}", file=sys.stderr)
+        print(f"omarchy-screen-rotate-touchpad: cannot create the virtual touchpad: {err}", file=sys.stderr)
         return 3
 
     def stop(*_):
@@ -136,7 +136,7 @@ def main():
     signal.signal(signal.SIGINT, stop)
 
     turner = Turner(args.angle, absinfo)
-    print(f"omarchy-rotate-touchpad: {pad.path} ({pad.name}) turned {args.angle}° as \"{VIRTUAL_NAME}\"", flush=True)
+    print(f"omarchy-screen-rotate-touchpad: {pad.path} ({pad.name}) turned {args.angle}° as \"{VIRTUAL_NAME}\"", flush=True)
     try:
         pad.grab()
         for ev in pad.read_loop():
