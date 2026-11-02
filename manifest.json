@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "id": "io.github.stefanoconiglio.rotate",
+  "name": "Rotate",
+  "version": "1.0.0",
+  "author": "Stefano Coniglio",
+  "license": "MIT",
+  "description": "Turns the laptop's screen, its touchpad and the mice a quarter, for reading while walking with the laptop held sideways; a second click puts them back. Lit while turned.",
+  "kinds": [
+    "bar-widget"
+  ],
+  "entryPoints": {
+    "barWidget": "BarWidget.qml"
+  },
+  "barWidget": {
+    "displayName": "Rotate",
+    "description": "Turn the screen, touchpad and mouse a quarter; click again to put them back",
+    "category": "Status",
+    "allowMultiple": false,
+    "defaultSection": "center"
+  }
+}

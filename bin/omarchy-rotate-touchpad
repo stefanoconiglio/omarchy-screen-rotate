@@ -1,0 +1,155 @@
+#!/usr/bin/env -S uv run --quiet --script
+# /// script
+# requires-python = ">=3.10"
+# dependencies = ["evdev>=1.7"]
+# ///
+"""omarchy-rotate-touchpad [--angle 90|180|270] [--device /dev/input/eventN]
+
+Turns the laptop's touchpad by the angle (degrees clockwise, as libinput's
+rotation for mice), for as long as it runs. libinput rotates mice but not
+touchpads (libinput 1.32: only evdev-fallback.c has the rotation setting), so
+this takes the touchpad for itself (an evdev grab: nothing else reads it) and
+hands every event on through a virtual touchpad (uinput) whose X and Y are
+turned. The virtual one has the real one's buttons, properties, vendor and
+product, so libinput treats it as the same touchpad: clicks, scrolling,
+gestures and palm rejection keep working.
+
+It runs inside the transient user unit omarchy-rotate-touchpad.service, started
+and stopped by `omarchy-rotate`. When it exits, however it exits, the kernel
+ends the grab and drops the virtual device: the real touchpad is back.
+
+Needs read access to the touchpad's event node and write access to
+/dev/uinput: the udev rule in udev/70-omarchy-rotate.rules gives both to the
+user at the seat. Exit 2: no touchpad found or not readable; exit 3: /dev/uinput
+not writable.
+"""
+
+import argparse
+import signal
+import sys
+
+import evdev
+from evdev import ecodes as e
+
+VIRTUAL_NAME = "omarchy-rotate touchpad"
+
+# The two axis pairs a touchpad reports positions on.
+PAIRS = ((e.ABS_X, e.ABS_Y), (e.ABS_MT_POSITION_X, e.ABS_MT_POSITION_Y))
+
+
+def turn(angle, x, y, xinfo, yinfo):
+    """Where the point (x, y) of the real pad lies on the virtual pad turned by
+    angle degrees clockwise (y grows downwards, as on the pad). Returns the
+    virtual (x, y). For 90 and 270 the virtual X runs along the real Y."""
+    if angle == 90:
+        return yinfo.max + yinfo.min - y, x
+    if angle == 180:
+        return xinfo.max + xinfo.min - x, yinfo.max + yinfo.min - y
+    if angle == 270:
+        return y, xinfo.max + xinfo.min - x
+    return x, y
+
+
+def virtual_absinfo(angle, absinfo):
+    """The virtual pad's axes: for 90 and 270 each X takes its Y's range and
+    resolution and the other way round."""
+    out = dict(absinfo)
+    if angle in (90, 270):
+        for ax, ay in PAIRS:
+            if ax in absinfo and ay in absinfo:
+                out[ax], out[ay] = absinfo[ay], absinfo[ax]
+    return out
+
+
+class Turner:
+    """Turns one frame at a time: X and Y of a slot may come in separate
+    events, or only one of them, so the last known value of each is kept."""
+
+    def __init__(self, angle, absinfo):
+        self.angle = angle
+        self.absinfo = absinfo
+        self.last = {code: info.value for code, info in absinfo.items()}
+
+    def events(self, ev_type, code, value):
+        """The events to write for one real event, as (type, code, value)."""
+        if ev_type != e.EV_ABS or self.angle == 0:
+            return [(ev_type, code, value)]
+        for ax, ay in PAIRS:
+            if code in (ax, ay) and ax in self.absinfo and ay in self.absinfo:
+                self.last[code] = value
+                vx, vy = turn(self.angle, self.last[ax], self.last[ay],
+                              self.absinfo[ax], self.absinfo[ay])
+                # A real X move changes the virtual Y for 90 and 270, the
+                # virtual X for 180; only the changed one is written.
+                if self.angle == 180:
+                    return [(e.EV_ABS, code, vx if code == ax else vy)]
+                return [(e.EV_ABS, ay, vy)] if code == ax else [(e.EV_ABS, ax, vx)]
+        return [(ev_type, code, value)]
+
+
+def find_touchpad(path):
+    if path:
+        return evdev.InputDevice(path)
+    for p in evdev.list_devices():
+        try:
+            d = evdev.InputDevice(p)
+        except OSError:
+            continue
+        # Codes only: by default EV_ABS lists (code, AbsInfo) pairs.
+        caps = d.capabilities(absinfo=False)
+        if (d.name != VIRTUAL_NAME
+                and e.ABS_MT_POSITION_X in caps.get(e.EV_ABS, [])
+                and e.BTN_TOOL_FINGER in caps.get(e.EV_KEY, [])
+                and e.INPUT_PROP_DIRECT not in d.input_props()):
+            return d
+        d.close()
+    return None
+
+
+def main():
+    ap = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
+    ap.add_argument("--angle", type=int, choices=(90, 180, 270), default=90)
+    ap.add_argument("--device", help="the touchpad's /dev/input/eventN (default: the first touchpad found)")
+    args = ap.parse_args()
+
+    pad = find_touchpad(args.device)
+    if pad is None:
+        print("omarchy-rotate-touchpad: no readable touchpad (is the udev rule installed?)", file=sys.stderr)
+        return 2
+
+    caps = pad.capabilities(absinfo=True)
+    absinfo = dict(caps.get(e.EV_ABS, []))
+    events = {t: c for t, c in caps.items() if t not in (e.EV_SYN, e.EV_ABS)}
+    events[e.EV_ABS] = list(virtual_absinfo(args.angle, absinfo).items())
+    try:
+        ui = evdev.UInput(events=events, name=VIRTUAL_NAME,
+                          vendor=pad.info.vendor, product=pad.info.product,
+                          version=pad.info.version, bustype=pad.info.bustype,
+                          input_props=pad.input_props())
+    except (OSError, evdev.UInputError) as err:
+        print(f"omarchy-rotate-touchpad: cannot create the virtual touchpad: {err}", file=sys.stderr)
+        return 3
+
+    def stop(*_):
+        raise SystemExit(0)
+    signal.signal(signal.SIGTERM, stop)
+    signal.signal(signal.SIGINT, stop)
+
+    turner = Turner(args.angle, absinfo)
+    print(f"omarchy-rotate-touchpad: {pad.path} ({pad.name}) turned {args.angle}° as \"{VIRTUAL_NAME}\"", flush=True)
+    try:
+        pad.grab()
+        for ev in pad.read_loop():
+            for t, c, v in turner.events(ev.type, ev.code, ev.value):
+                ui.write(t, c, v)
+    finally:
+        try:
+            pad.ungrab()
+        except OSError:
+            pass
+        ui.close()
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())
